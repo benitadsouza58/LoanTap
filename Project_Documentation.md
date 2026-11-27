@@ -1552,4 +1552,484 @@ These decisions establish the feature-selection baseline for the next phase: dat
 
 The feature shortlist may be revisited if later validation reveals data-quality issues, redundancy or poor predictive contribution.
 
+# LoanTap Personal Loan Default Prediction
+## Modelling – Baseline Logistic Regression
+
+### 1. Objective of the modelling stage
+
+The objective is to develop a classification model that estimates the probability that a personal loan applicant will default.
+
+The target variable is `loan_status`, encoded as:
+
+- `0` – Fully Paid
+- `1` – Charged Off
+
+The model is intended to support LoanTap's underwriting and risk assessment process by identifying applicants who may have a higher probability of default.
+
+The prediction point was defined as immediately after loan application submission, before underwriting, verification, approval and loan issuance. Accordingly, features that would only become available after underwriting or loan issuance were excluded from the primary modelling dataset.
+
+### 2. Modelling dataset
+
+The modelling dataset was prepared using the feature-selection and preprocessing decisions documented in the earlier sections.
+
+The modelling predictors included:
+
+- Loan and applicant information: `loan_amnt`, `term`, `emp_length`, `home_ownership`, `log_annual_inc`, `purpose`, `application_type`
+- Debt and credit information: `dti`, `open_acc`, `total_acc`, `pub_rec`, `pub_rec_bankruptcies`, `mort_acc`, `revol_bal`, `revol_util`
+- Missingness information: `mort_acc_missing`
+
+The target variable was `loan_status`.
+
+The final encoded predictor dataset contained 41 columns after one-hot encoding.
+
+### 3. Train-test split
+
+The data was divided into training and testing sets using an 80:20 split.
+
+Stratification was applied using the target variable to preserve the original class distribution in both datasets.
+
+| Dataset | Records |
+|---|---:|
+| Training | 316,824 |
+| Testing | 79,206 |
+| Total | 396,030 |
+
+Target distribution:
+
+| Target | Meaning | Approximate proportion |
+|---|---|---:|
+| 0 | Fully Paid | 80.39% |
+| 1 | Charged Off | 19.61% |
+
+The test dataset was kept separate from model training and preprocessing.
+
+### 4. Feature encoding and scaling
+
+Categorical predictors were converted into numerical variables using one-hot encoding.
+
+The categorical variables included:
+
+- `term`
+- `emp_length`
+- `home_ownership`
+- `purpose`
+- `application_type`
+
+The training and testing datasets were aligned to ensure that both contained the same encoded columns.
+
+Continuous numerical features were standardised using `StandardScaler`.
+
+The scaler was fitted only on the training data and then used to transform the test data. This avoided data leakage from the test set into the training process.
+
+The continuous features scaled were:
+
+`loan_amnt`, `log_annual_inc`, `dti`, `open_acc`, `total_acc`, `pub_rec`, `pub_rec_bankruptcies`, `mort_acc`, `revol_bal`, `revol_util`.
+
+Binary indicator and one-hot encoded columns were not standardised.
+
+### 5. Baseline Logistic Regression model
+
+Logistic Regression was selected as the first baseline classification algorithm.
+
+It estimates the probability of a borrower belonging to the Charged Off class.
+
+The model was trained using:
+
+- Maximum iterations: 1,000
+- Random state: 42
+- Default classification threshold: 0.50
+
+The model converged after 59 iterations.
+
+The training accuracy was approximately 80.53%.
+
+### 6. Baseline model evaluation
+
+The model was evaluated on the test dataset.
+
+#### 6.1 Confusion matrix
+
+| Actual / Predicted | Fully Paid (0) | Charged Off (1) |
+|---|---:|---:|
+| Fully Paid (0) | 63,127 | 544 |
+| Charged Off (1) | 14,866 | 669 |
+
+Interpretation:
+
+- 63,127 fully paid loans were correctly classified.
+- 544 fully paid loans were incorrectly flagged as charged off.
+- 669 charged-off loans were correctly identified.
+- 14,866 charged-off loans were incorrectly classified as fully paid.
+
+The model identified only a small proportion of actual defaults at the default threshold of 0.50.
+
+#### 6.2 Classification report
+
+| Metric | Fully Paid (0) | Charged Off (1) |
+|---|---:|---:|
+| Precision | 0.81 | 0.55 |
+| Recall | 0.99 | 0.04 |
+| F1-score | 0.89 | 0.08 |
+| Support | 63,671 | 15,535 |
+
+Overall accuracy: **80.54%**
+
+Interpretation:
+
+- The recall for Fully Paid loans is 99%, meaning the model identifies almost all fully paid loans.
+- The recall for Charged Off loans is only 4%, meaning the model identifies very few actual defaults.
+- The model's default-class precision is 55%, but this is based on a relatively small number of predicted defaults.
+- The overall accuracy is not sufficient to judge model quality because the target classes are imbalanced.
+
+A simple model that predicts every loan as Fully Paid would already achieve approximately 80.39% accuracy. Therefore, the baseline model's 80.54% accuracy represents only a marginal improvement over that naive benchmark.
+
+#### 6.3 ROC-AUC
+
+ROC-AUC: **0.6879**
+
+ROC-AUC measures how well the model ranks positive cases above negative cases across different classification thresholds.
+
+A score of 0.6879 indicates modest discriminatory ability. The model has some capacity to distinguish between Fully Paid and Charged Off loans, but its ranking performance is not particularly strong.
+
+### 7. Baseline model assessment
+
+The initial Logistic Regression model has an important limitation: it predicts very few borrowers as likely defaulters when using the default threshold of 0.50.
+
+This is reflected in the Charged Off recall of only 4%.
+
+However, this does not necessarily mean that the model cannot identify higher-risk borrowers. The default threshold of 0.50 may be too conservative for this imbalanced classification problem.
+
+The probability estimates should therefore be examined at different classification thresholds.
+
+### 8. Next modelling activity: threshold optimisation
+
+The next step is to investigate alternative classification thresholds using a validation dataset.
+
+The test dataset must not be used to select the threshold. Threshold selection will be performed using a validation split created from the existing training dataset.
+
+The planned process is:
+
+1. Split the training dataset into a sub-training set and a validation set.
+2. Fit a fresh scaler using only the sub-training data.
+3. Train a separate Logistic Regression model on the sub-training data.
+4. Generate default probabilities for the validation data.
+5. Evaluate different thresholds using precision, recall, F1-score and confusion matrices.
+6. Select a threshold based on the business trade-off between identifying defaulters and incorrectly flagging borrowers who would repay.
+
+After selecting a threshold, the final model will be trained using the full original training dataset and evaluated on the test dataset.
+
+The test dataset will remain excluded from threshold selection.
+
+### 9. Current conclusion
+
+The first Logistic Regression model establishes a baseline for the LoanTap default prediction problem.
+
+The model achieves 80.54% accuracy and an ROC-AUC of 0.6879. However, its default-class recall is only 4% at the default threshold of 0.50.
+
+The next priority is to investigate whether a more suitable classification threshold can improve default identification while maintaining an acceptable level of precision.
+
+No final model-selection or deployment decision has been made at this stage.
+
+# LoanTap Personal Loan Default Prediction
+## Modelling – Logistic Regression: Baseline, Threshold Selection and Final Evaluation
+
+### 1. Modelling objective
+
+Develop a binary classification model to estimate the probability that a personal loan applicant will default.
+
+**Target variable:** `loan_status`
+
+- 0 – Fully Paid
+- 1 – Charged Off
+
+**Prediction point:** Immediately after application submission, before underwriting, verification, approval and loan issuance.
+
+The objective is to identify potentially high-risk applicants while balancing the identification of actual defaulters against incorrectly flagging borrowers who would repay.
+
+### 2. Modelling dataset
+
+The modelling predictors were:
+
+`loan_amnt`, `term`, `emp_length`, `home_ownership`, `log_annual_inc`, `purpose`, `dti`, `open_acc`, `total_acc`, `pub_rec`, `pub_rec_bankruptcies`, `mort_acc`, `revol_bal`, `revol_util`, `application_type`, `mort_acc_missing`.
+
+The target was `loan_status`.
+
+After one-hot encoding, the predictor dataset contained 41 columns.
+
+### 3. Train-test split
+
+The original dataset was divided using an 80:20 stratified split.
+
+| Dataset | Records |
+|---|---:|
+| Training | 316,824 |
+| Testing | 79,206 |
+| Total | 396,030 |
+
+Target distribution:
+
+| Target | Meaning | Proportion |
+|---|---|---:|
+| 0 | Fully Paid | 80.39% |
+| 1 | Charged Off | 19.61% |
+
+Stratification preserved the target distribution in both datasets.
+
+### 4. Preprocessing
+
+Categorical predictors were converted using one-hot encoding with `drop_first=True`.
+
+The categorical variables were:
+
+- `term`
+- `emp_length`
+- `home_ownership`
+- `purpose`
+- `application_type`
+
+Continuous numerical predictors were standardised using `StandardScaler`.
+
+The scaler was fitted on the training data and applied to the test data. Binary indicators and one-hot encoded columns were not scaled.
+
+The 10 continuous predictors were:
+
+`loan_amnt`, `log_annual_inc`, `dti`, `open_acc`, `total_acc`, `pub_rec`, `pub_rec_bankruptcies`, `mort_acc`, `revol_bal`, `revol_util`.
+
+### 5. Baseline Logistic Regression
+
+A Logistic Regression model was trained with:
+
+- `max_iter=1000`
+- `random_state=42`
+- Default classification threshold = 0.50
+
+The model converged after 59 iterations.
+
+Training accuracy: approximately 80.53%.
+
+#### 5.1 Baseline test evaluation
+
+Confusion matrix:
+
+| Actual / Predicted | Fully Paid | Charged Off |
+|---|---:|---:|
+| Fully Paid | 63,127 | 544 |
+| Charged Off | 14,866 | 669 |
+
+Classification metrics:
+
+| Metric | Fully Paid | Charged Off |
+|---|---:|---:|
+| Precision | 0.81 | 0.55 |
+| Recall | 0.99 | 0.04 |
+| F1-score | 0.89 | 0.08 |
+
+- Test accuracy: 80.54%
+- ROC-AUC: 0.6879
+
+**Interpretation:**
+
+The baseline model identified only 4.14% of actual defaulters at the default threshold of 0.50. Although accuracy was approximately 80.54%, this was only marginally higher than the 80.39% accuracy achievable by predicting every loan as Fully Paid.
+
+ROC-AUC of 0.6879 indicated modest discriminatory ability.
+
+The baseline therefore demonstrated that accuracy alone was not a suitable measure of success for this imbalanced classification problem.
+
+### 6. Threshold optimisation using validation data
+
+#### 6.1 Validation split
+
+To investigate alternative classification thresholds without using the test dataset, the original training data was further divided into:
+
+| Dataset | Records | Shape |
+|---|---:|---|
+| Sub-training | 253,459 | (253459, 41) |
+| Validation | 63,365 | (63365, 41) |
+
+Both datasets retained the same class distribution:
+
+- Fully Paid: 80.39%
+- Charged Off: 19.61%
+
+A fresh `StandardScaler` was fitted only on the sub-training data and applied to the validation data.
+
+A separate Logistic Regression model was trained on the sub-training data. It converged after 64 iterations.
+
+The validation model generated default probabilities using `predict_proba()`.
+
+#### 6.2 Threshold experiments
+
+Thresholds between 0.10 and 0.50 were evaluated using:
+
+- Precision
+- Recall
+- F1-score
+- True positives
+- False positives
+- True negatives
+- False negatives
+
+The initial threshold comparison showed that reducing the threshold substantially increased Charged Off recall.
+
+Selected results:
+
+| Threshold | Precision | Recall | F1-score |
+|---:|---:|---:|---:|
+| 0.10 | 0.2226 | 0.9370 | 0.3597 |
+| 0.15 | 0.2621 | 0.7891 | 0.3935 |
+| 0.20 | 0.3048 | 0.6106 | 0.4066 |
+| 0.25 | 0.3483 | 0.4571 | 0.3953 |
+| 0.30 | 0.3874 | 0.3270 | 0.3546 |
+| 0.50 | 0.5593 | 0.0414 | 0.0770 |
+
+A finer search between 0.15 and 0.25 was then performed.
+
+The exact F1-score comparison for the two closest rounded candidates was:
+
+| Threshold | Precision | Recall | F1-score |
+|---:|---:|---:|---:|
+| 0.19 | 0.29655885 | 0.64628259 | 0.40656003 |
+| 0.20 | 0.30481240 | 0.61055681 | 0.40662344 |
+
+A further search using `precision_recall_curve()` evaluated all distinct validation probability thresholds.
+
+#### 6.3 Selected threshold
+
+The maximum-F1 threshold found was:
+
+**0.1909335296 (approximately 0.19093)**
+
+Validation metrics at this threshold:
+
+| Metric | Result |
+|---|---:|
+| Precision – Charged Off | 29.78% |
+| Recall – Charged Off | 64.40% |
+| F1-score – Charged Off | 0.4073 |
+| Validation accuracy | Approximately 63% |
+| Applicants flagged | 26,875 |
+| Percentage flagged | 42.41% |
+
+Validation confusion matrix:
+
+| Actual / Predicted | Fully Paid | Charged Off |
+|---|---:|---:|
+| Fully Paid | 32,066 | 18,871 |
+| Charged Off | 4,424 | 8,004 |
+
+**Threshold-selection objective:** Balance precision and recall, using F1-score as the primary selection guide.
+
+**Decision:** Select the threshold of approximately 0.19093 because it produced the highest observed F1-score on validation data.
+
+This is a modelling decision rather than a confirmed LoanTap business policy. The actual financial costs of missed defaults and false positives, as well as operational review capacity, have not been quantified.
+
+### 7. Final evaluation on the test dataset
+
+The selected threshold was applied to the original Logistic Regression model trained on the full training dataset.
+
+The test dataset was not used to select or modify the threshold.
+
+#### 7.1 Test confusion matrix
+
+| Actual / Predicted | Fully Paid | Charged Off |
+|---|---:|---:|
+| Fully Paid | 40,096 | 23,575 |
+| Charged Off | 5,565 | 9,970 |
+
+#### 7.2 Test classification metrics
+
+| Metric | Fully Paid | Charged Off |
+|---|---:|---:|
+| Precision | 0.88 | 0.30 |
+| Recall | 0.63 | 0.64 |
+| F1-score | 0.73 | 0.41 |
+| Support | 63,671 | 15,535 |
+
+Additional metrics:
+
+| Metric | Result |
+|---|---:|
+| Test accuracy | 63.21% |
+| Test ROC-AUC | 0.68785 |
+| Applicants flagged | 33,545 |
+| Percentage flagged | 42.35% |
+
+#### 7.3 Interpretation of final results
+
+The model identified 9,970 of the 15,535 actual Charged Off loans, giving a default recall of approximately 64.18%.
+
+It missed 5,565 actual defaulters.
+
+It also flagged 23,575 Fully Paid borrowers as potential defaulters. These are false positives.
+
+Of the 33,545 applicants flagged by the model, approximately 29.72% actually defaulted.
+
+The selected threshold therefore increases default identification substantially compared with the baseline threshold, but results in a significant number of false positives.
+
+The flagged population represents 42.35% of the test dataset. This is a meaningful operational consideration if flagged applicants require manual review.
+
+### 8. Comparison of validation and test performance
+
+| Metric | Validation | Test |
+|---|---:|---:|
+| Charged Off precision | 29.78% | 29.72% |
+| Charged Off recall | 64.40% | 64.18% |
+| Charged Off F1-score | 0.4073 | Approximately 0.409 |
+| Applicants flagged | 42.41% | 42.35% |
+| Accuracy | Approximately 63% | 63.21% |
+| ROC-AUC | Not separately reported | 0.68785 |
+
+The validation and test results are close, indicating reasonably consistent performance at the selected threshold.
+
+### 9. Understanding the change in accuracy
+
+The baseline model achieved 80.54% test accuracy at a threshold of 0.50.
+
+The model achieved 63.21% test accuracy at the selected threshold of 0.19093.
+
+This reduction is expected because lowering the threshold causes more applicants to be classified as potential defaulters.
+
+The objective of threshold selection was to improve default identification, not maximise accuracy.
+
+ROC-AUC remained approximately 0.6879 because changing the classification threshold does not change the underlying probability rankings. It changes only the conversion of probabilities into class predictions.
+
+### 10. Business interpretation and limitations
+
+The model can be considered a preliminary risk-screening tool, rather than an automatic loan rejection mechanism.
+
+Potential uses include:
+
+- Identifying applicants for additional risk assessment.
+- Prioritising manual underwriting review.
+- Supporting risk segmentation.
+- Providing an estimated default probability to assist decision-making.
+
+Important limitations:
+
+1. Default precision is approximately 30%, so many flagged borrowers would have repaid.
+2. Approximately 36% of actual defaulters are still missed.
+3. The flagged population is approximately 42% of applicants, which could create a substantial review workload.
+4. ROC-AUC of approximately 0.688 indicates only modest ranking performance.
+5. The F1-based threshold does not incorporate actual financial loss, loan exposure or operational review costs.
+6. Additional model development and comparison are required before considering deployment.
+
+### 11. Current conclusion
+
+The baseline Logistic Regression model demonstrated poor default recall at the default threshold of 0.50.
+
+Threshold optimisation using validation data identified 0.19093 as the maximum-F1 operating point.
+
+When applied to the independent test dataset, the model achieved approximately:
+
+- 29.72% Charged Off precision
+- 64.18% Charged Off recall
+- 0.409 Charged Off F1-score
+- 0.68785 ROC-AUC
+
+The validation and test results are consistent, suggesting that the threshold selection generalises reasonably well.
+
+However, the model's modest ROC-AUC and high false-positive count indicate that further improvements are needed.
+
+**Status:** Baseline Logistic Regression, validation threshold selection and final test evaluation completed. Further model development and comparison remain pending.
+
 
