@@ -1,49 +1,53 @@
-# Jamboree_Education
-ML project based on Linear Regression
+LoanTap is an online platform committed to delivering customized loan products to millennials. They innovate in an otherwise dull loan segment, to deliver instant, flexible loans on consumer friendly terms to salaried professionals and businessmen.
 
-## Context
+The data science team at LoanTap is building an underwriting layer to determine the creditworthiness of MSMEs as well as individuals.
 
-Jamboree has helped thousands of students like you make it to top colleges abroad. Be it GMAT, GRE or SAT, their unique problem-solving methods ensure maximum scores with minimum effort.
-They recently launched a feature where students/learners can come to their website and check their probability of getting into the IVY league college. This feature estimates the chances of graduate admission from an Indian perspective.
+LoanTap deploys formal credit to salaried individuals and businesses 4 main financial instruments:
 
-This analysis will help Jamboree in understanding what factors are important in graduate admissions and how these factors are interrelated among themselves. It will also help predict one's chances of admission given the rest of the variables.
+Personal Loan
+EMI Free Loan
+Personal Overdraft
+Advance Salary Loan
+This case study will focus on the underwriting process behind Personal Loan only
 
-## Dataset:
+Problem Statement:
 
-Dataset Link: [jamboree_admission.csv](https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/001/839/original/Jamboree_Admission.csv)
+Given a set of attributes for an Individual, determine if a credit line should be extended to them. If so, what should the repayment terms be in business recommendations?
 
-## Column Profiling:
+Dataset: LoanTapData.csv
 
-* Serial No. (Unique row ID)
-* GRE Scores (out of 340)
-* TOEFL Scores (out of 120)
-* University Rating (out of 5)
-* Statement of Purpose and Letter of Recommendation Strength (out of 5)
-* Undergraduate GPA (out of 10)
-* Research Experience (either 0 or 1)
-* Chance of Admit (ranging from 0 to 1)
+Data dictionary:
 
-## Concept Used:
+loan_amnt : The listed amount of the loan applied for by the borrower. If at some point in time, the credit department reduces the loan amount, then it will be reflected in this value.
+term : The number of payments on the loan. Values are in months and can be either 36 or 60.
+int_rate : Interest Rate on the loan
+installment : The monthly payment owed by the borrower if the loan originates.
+grade : LoanTap assigned loan grade
+sub_grade : LoanTap assigned loan subgrade
+emp_title :The job title supplied by the Borrower when applying for the loan.*
+emp_length : Employment length in years. Possible values are between 0 and 10 where 0 means less than one year and 10 means ten or more years.
+home_ownership : The home ownership status provided by the borrower during registration or obtained from the credit report.
+annual_inc : The self-reported annual income provided by the borrower during registration.
+verification_status : Indicates if income was verified by LoanTap, not verified, or if the income source was verified
+issue_d : The month which the loan was funded
+loan_status : Current status of the loan - Target Variable
+purpose : A category provided by the borrower for the loan request.
+title : The loan title provided by the borrower
+dti : A ratio calculated using the borrower’s total monthly debt payments on the total debt obligations, excluding mortgage and the requested LoanTap loan, divided by the borrower’s self-reported monthly income.
+earliest_cr_line :The month the borrower's earliest reported credit line was opened
+open_acc : The number of open credit lines in the borrower's credit file.
+pub_rec : Number of derogatory public records
+revol_bal : Total credit revolving balance
+revol_util : Revolving line utilization rate, or the amount of credit the borrower is using relative to all available revolving credit.
+total_acc : The total number of credit lines currently in the borrower's credit file
+initial_list_status : The initial listing status of the loan. Possible values are – W, F
+application_type : Indicates whether the loan is an individual application or a joint application with two co-borrowers
+mort_acc : Number of mortgage accounts.
+pub_rec_bankruptcies : Number of public record bankruptcies
+Address: Address of the individual
+Concept Used:
 
-* Exploratory Data Analysis
-* Linear Regression
-
-## Actions:
-
-* Import the dataset
-* Exploratory data analysis steps like checking the structure & characteristics of the dataset.
-* Drop the unique row Identifier if any
-* Non-graphical and graphical analysis for getting inferences about variables.
-* Checking the distribution of variables of graduate applicants.
-* Understanding the relationship between different factors responsible for graduate admissions.
-* Correlation among independent variables and how they interact with each other.
-* Linear Regression from (Statsmodel library) and explain the results.
-* Test the assumptions of linear regression:
-* Multicollinearity check by VIF score
-* Mean of residuals
-* Linearity of variables (no pattern in residual plot)
-* Test for Homoscedasticity
-* Normality of residuals
-* Model evaluation - MAE, RMSE, R2 score, Adjusted R2.
-* Provide actionable Insights & Recommendations
-* Try out different Linear Regressions
+Exploratory Data Analysis
+Feature Engineering
+Logistic Regression
+Precision Vs Recall Tradeoff
